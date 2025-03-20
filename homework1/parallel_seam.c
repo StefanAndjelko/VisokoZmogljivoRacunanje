@@ -1,0 +1,254 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "omp.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image.h"
+#include "stb_image_write.h"
+
+#define COLOR_CHANNELS 0
+
+void print_arr(int *a, int n)
+{
+    for (int i = 0; i < n; i++)
+    {
+        printf("%d, ", a[i]);
+    }
+    printf("\n");
+}
+
+double *calculate_energy(unsigned char *image, int n, int m)
+{
+    double *energy_arr = malloc((n * m) * sizeof(double));
+
+    int thread_num = omp_get_max_threads();
+
+    #pragma omp parallel for
+    for (int i = 0; i < n * m * 3; i+= 3) {
+        int row_ix = (i / 3) / m;
+        int col_ix = (i / 3) % m;
+
+        int col_x1, col_x2, row_y1, row_y2;
+
+        #pragma omp critical
+        {
+            col_x1 = col_ix + 1;
+            col_x1 = (col_x1 >= m)? (m - 1) : ((col_x1 < 0)? 0 : col_x1);
+            col_x2 =col_ix - 1;
+            col_x2 = (col_x2 >= m)? (m - 1) : ((col_x2 < 0)? 0 : col_x2);
+            row_y1 = row_ix - 1;
+            row_y1 = (row_y1 >= n)? (n - 1) : ((row_y1 < 0)? 0 : row_y1);
+            row_y2 = row_ix + 1;
+            row_y2 = (row_y2 >= n)? (n - 1) : ((row_y2< 0)? 0 : row_y2);
+        }
+
+
+        int g_x_r = 0;
+        int g_x_g = 0;
+        int g_x_b = 0;
+
+        int g_y_r = 0;
+        int g_y_g = 0;
+        int g_y_b = 0;
+
+        int g_x = 0;
+        int g_y = 0;
+
+        for (int k = -1; k <= 1; k++) 
+        {
+            int row_x = row_ix + k;
+            row_x = (row_x >= n)? (n - 1) : ((row_x < 0)? 0 : row_x);
+            int col_y = col_ix + k;
+            col_y = (col_y >= m)? (m - 1) : ((col_y < 0)? 0 : col_y);
+            #pragma omp critical
+            {
+                g_x_r = g_x_r + image[(row_x * m + col_x1) * 3] - image[(row_x * m + col_x2) * 3];
+                g_y_r = g_y_r + image[(row_y1 * m + col_y) * 3] - image[(row_y2 * m + col_y) * 3];
+                g_x_g = g_x_g + image[(row_x * m + col_x1) * 3 + 1] - image[(row_x * m + col_x2) * 3 + 1];
+                g_y_g = g_y_g + image[(row_y1 * m + col_y) * 3 + 1] - image[(row_y2 * m + col_y) * 3 + 1];
+                g_x_b = g_x_b + image[(row_x * m + col_x1) * 3 + 2] - image[(row_x * m + col_x2) * 3 + 2];
+                g_y_b = g_y_b + image[(row_y1 * m + col_y) * 3 + 2] - image[(row_y2 * m + col_y) * 3 + 2];
+            }
+        }
+
+        g_x = (double)(g_x_r + g_x_g + g_x_b) / 3;
+        g_y = (double)(g_y_r + g_y_g + g_y_b) / 3;
+        // printf("root: %.2f\n", sqrt((double)(g_x * g_x + g_y * g_y)));
+
+        energy_arr[i / 3] = sqrt((double)(g_x * g_x + g_y * g_y));
+    }
+
+    return energy_arr;
+}
+
+double min3(double a, double b, double c) {
+    double min_val = a;
+
+    if (b < min_val) {
+        min_val = b;
+    }
+    if (c < min_val) {
+        min_val = c;
+    }
+
+    return min_val;
+}
+
+double min2(double a, double b) {
+    double min_val = a;
+
+    if (b < min_val) {
+        min_val = b;
+    }
+
+    return min_val;
+}
+
+void cumulative_energy(double *array, int n, int m)
+{
+    for (int i = n - 2; i >= 0; i--) 
+    {
+        #pragma omp parallel for
+        for (int j = 0; j < m; j++)
+        {
+            if (j == 0) 
+            {
+                array[i * m + j] += min2(array[(i + 1) * m + j], array[(i + 1) * m + (j + 1)]);
+            }
+            else if (j == m - 1)
+            {
+                array[i * m + j] += min2(array[(i + 1) * m + j], array[(i + 1) * m + (j - 1)]);
+            }
+            else 
+            {
+                array[i * m + j] += min3(array[(i + 1) * m + j - 1], array[(i + 1) * m + j], array[(i + 1) * m + (j + 1)]);
+            }
+        }
+    }
+}
+
+int *shortest_path(double *energies, int n, int m)
+{
+    int *indices = malloc(n * sizeof(int));
+
+    int min_ix = 0;
+    double min_energy = energies[(n - 1) * m];
+    for (int col = 1; col < m; col++)
+    {
+        if (energies[(n - 1) * m + col] < min_energy)
+        {
+            min_energy = energies[(n - 1) * m + col];
+            min_ix = col;
+        }
+    }
+
+    indices[n - 1] = min_ix;
+    for (int row = n - 2; row >= 0; row--)
+    {
+        int prev_col = indices[row + 1];
+        int best_col = prev_col; 
+        double best_energy = energies[row * m + prev_col];
+
+        if (prev_col > 0 && energies[row * m + (prev_col - 1)] < best_energy)
+        {
+            best_energy = energies[row * m + (prev_col - 1)];
+            best_col = prev_col - 1;
+        }
+
+        if (prev_col < m - 1 && energies[row * m + (prev_col + 1)] < best_energy)
+        {
+            best_energy = energies[row * m + (prev_col + 1)];
+            best_col = prev_col + 1;
+        }
+
+        indices[row] = best_col;
+    }
+
+    return indices;
+}
+
+unsigned char *update_image(unsigned char *image, int n, int m, int *indices)
+{
+    unsigned char *new_image = malloc(3 * n * (m - 1) * sizeof(unsigned char));
+
+    #pragma omp parallel for
+    for (int row = 0; row < n; row++) {
+        int counter = row * (m - 1) * 3;
+        for (int col = 0; col < m; col++) {
+            if (indices[row] == col) 
+                continue;
+
+            int src_index = (row * m + col) * 3;
+            new_image[counter] = image[src_index];
+            new_image[counter + 1] = image[src_index + 1];
+            new_image[counter + 2] = image[src_index + 2];
+            counter += 3;
+        }
+    }
+
+    return new_image;
+}
+
+double *update_energies(double *energies, int n, int m, int *indices)
+{
+    double *new_energies = malloc(n * (m - 1) * sizeof(double));
+
+    #pragma omp parallel for
+    for (int row = 0; row < n; row++) {
+        int counter = row * (m - 1);
+        for (int col = 0; col < m; col++) {
+            if (indices[row] == col) 
+                continue;
+
+            new_energies[counter++] = energies[row * m + col];
+        }
+    }
+
+    return new_energies;
+}
+
+int main(int argc, char *argv[])
+{
+    char *image_in_name = argv[1];
+    int reduce_width = atoi(argv[2]);
+    int width, height, cpp;
+    unsigned char *image_in = stbi_load(image_in_name, &width, &height, &cpp, COLOR_CHANNELS);
+
+    printf("Loaded image of dimensions: (%d, %d)\n", width, height);
+
+    printf("Reducing image by %d columns\n", reduce_width);
+    double dt = omp_get_wtime();
+    double *energies = calculate_energy(image_in, height, width);
+    cumulative_energy(energies, height, width);
+    for (int i = 0; i < reduce_width; i++)
+    {
+        int *indices = shortest_path(energies, height, width);
+
+        double *new_energies = update_energies(energies, height, width, indices);
+        free(energies);
+        energies = new_energies;
+
+        unsigned char *new_img = update_image(image_in, height, width, indices);
+        free(image_in);
+        image_in = new_img;
+
+        width--;
+        free(indices);
+    }
+
+    dt = omp_get_wtime() - dt;
+
+    if (!stbi_write_png("test.png", width, height, 3, image_in, width * 3)) {
+        printf("Failed to save image %s\n", "test.png");
+        stbi_image_free(image_in);
+        return 1;
+    }
+
+    printf("Saved modified image as %s\n", "test.png");
+    printf("Image cropped in %.4f seconds,\n", dt);
+
+    stbi_image_free(image_in);
+
+    return 0}
