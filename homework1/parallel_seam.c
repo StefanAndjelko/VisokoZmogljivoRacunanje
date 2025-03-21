@@ -30,19 +30,14 @@ double *calculate_energy(unsigned char *image, int n, int m)
         int row_ix = (i / 3) / m;
         int col_ix = (i / 3) % m;
 
-        int col_x1, col_x2, row_y1, row_y2;
-
-        #pragma omp critical
-        {
-            col_x1 = col_ix + 1;
-            col_x1 = (col_x1 >= m)? (m - 1) : ((col_x1 < 0)? 0 : col_x1);
-            col_x2 =col_ix - 1;
-            col_x2 = (col_x2 >= m)? (m - 1) : ((col_x2 < 0)? 0 : col_x2);
-            row_y1 = row_ix - 1;
-            row_y1 = (row_y1 >= n)? (n - 1) : ((row_y1 < 0)? 0 : row_y1);
-            row_y2 = row_ix + 1;
-            row_y2 = (row_y2 >= n)? (n - 1) : ((row_y2< 0)? 0 : row_y2);
-        }
+        int col_x1 = col_ix + 1;
+        col_x1 = (col_x1 >= m)? (m - 1) : ((col_x1 < 0)? 0 : col_x1);
+        int col_x2 =col_ix - 1;
+        col_x2 = (col_x2 >= m)? (m - 1) : ((col_x2 < 0)? 0 : col_x2);
+        int row_y1 = row_ix - 1;
+        row_y1 = (row_y1 >= n)? (n - 1) : ((row_y1 < 0)? 0 : row_y1);
+        int row_y2 = row_ix + 1;
+        row_y2 = (row_y2 >= n)? (n - 1) : ((row_y2< 0)? 0 : row_y2);
 
 
         int g_x_r = 0;
@@ -62,15 +57,13 @@ double *calculate_energy(unsigned char *image, int n, int m)
             row_x = (row_x >= n)? (n - 1) : ((row_x < 0)? 0 : row_x);
             int col_y = col_ix + k;
             col_y = (col_y >= m)? (m - 1) : ((col_y < 0)? 0 : col_y);
-            #pragma omp critical
-            {
-                g_x_r = g_x_r + image[(row_x * m + col_x1) * 3] - image[(row_x * m + col_x2) * 3];
-                g_y_r = g_y_r + image[(row_y1 * m + col_y) * 3] - image[(row_y2 * m + col_y) * 3];
-                g_x_g = g_x_g + image[(row_x * m + col_x1) * 3 + 1] - image[(row_x * m + col_x2) * 3 + 1];
-                g_y_g = g_y_g + image[(row_y1 * m + col_y) * 3 + 1] - image[(row_y2 * m + col_y) * 3 + 1];
-                g_x_b = g_x_b + image[(row_x * m + col_x1) * 3 + 2] - image[(row_x * m + col_x2) * 3 + 2];
-                g_y_b = g_y_b + image[(row_y1 * m + col_y) * 3 + 2] - image[(row_y2 * m + col_y) * 3 + 2];
-            }
+
+            g_x_r = g_x_r + image[(row_x * m + col_x1) * 3] - image[(row_x * m + col_x2) * 3];
+            g_y_r = g_y_r + image[(row_y1 * m + col_y) * 3] - image[(row_y2 * m + col_y) * 3];
+            g_x_g = g_x_g + image[(row_x * m + col_x1) * 3 + 1] - image[(row_x * m + col_x2) * 3 + 1];
+            g_y_g = g_y_g + image[(row_y1 * m + col_y) * 3 + 1] - image[(row_y2 * m + col_y) * 3 + 1];
+            g_x_b = g_x_b + image[(row_x * m + col_x1) * 3 + 2] - image[(row_x * m + col_x2) * 3 + 2];
+            g_y_b = g_y_b + image[(row_y1 * m + col_y) * 3 + 2] - image[(row_y2 * m + col_y) * 3 + 2];
         }
 
         g_x = (double)(g_x_r + g_x_g + g_x_b) / 3;
@@ -134,20 +127,21 @@ int *shortest_path(double *energies, int n, int m)
     int *indices = malloc(n * sizeof(int));
 
     int min_ix = 0;
-    double min_energy = energies[(n - 1) * m];
+    double min_energy = energies[0]; 
+
     for (int col = 1; col < m; col++)
     {
-        if (energies[(n - 1) * m + col] < min_energy)
+        if (energies[col] < min_energy)
         {
-            min_energy = energies[(n - 1) * m + col];
+            min_energy = energies[col];
             min_ix = col;
         }
     }
 
-    indices[n - 1] = min_ix;
-    for (int row = n - 2; row >= 0; row--)
+    indices[0] = min_ix;
+    for (int row = 1; row < n; row++)
     {
-        int prev_col = indices[row + 1];
+        int prev_col = indices[row - 1];
         int best_col = prev_col; 
         double best_energy = energies[row * m + prev_col];
 
@@ -168,6 +162,7 @@ int *shortest_path(double *energies, int n, int m)
 
     return indices;
 }
+
 
 unsigned char *update_image(unsigned char *image, int n, int m, int *indices)
 {
@@ -220,15 +215,17 @@ int main(int argc, char *argv[])
 
     printf("Reducing image by %d columns\n", reduce_width);
     double dt = omp_get_wtime();
-    double *energies = calculate_energy(image_in, height, width);
-    cumulative_energy(energies, height, width);
+    // double *energies = calculate_energy(image_in, height, width);
+    // cumulative_energy(energies, height, width);
     for (int i = 0; i < reduce_width; i++)
     {
+        double *energies = calculate_energy(image_in, height, width);
+        cumulative_energy(energies, height, width);
         int *indices = shortest_path(energies, height, width);
 
-        double *new_energies = update_energies(energies, height, width, indices);
+        // double *new_energies = update_energies(energies, height, width, indices);
         free(energies);
-        energies = new_energies;
+        // energies = new_energies;
 
         unsigned char *new_img = update_image(image_in, height, width, indices);
         free(image_in);
@@ -251,4 +248,5 @@ int main(int argc, char *argv[])
 
     stbi_image_free(image_in);
 
-    return 0;}
+    return 0;
+}
