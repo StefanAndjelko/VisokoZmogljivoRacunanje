@@ -66,11 +66,12 @@ double *calculate_energy(unsigned char *image, int n, int m)
             g_y_b = g_y_b + image[(row_y1 * m + col_y) * 3 + 2] - image[(row_y2 * m + col_y) * 3 + 2];
         }
 
+        // printf("root: %.2f\n", sqrt((double)(g_x * g_x + g_y * g_y)));
         double energy_r = sqrt((double)(g_x_r * g_x_r + g_y_r * g_y_r));
         double energy_g = sqrt((double)(g_x_g * g_x_g + g_y_g * g_y_g));
         double energy_b = sqrt((double)(g_x_b * g_x_b + g_y_b * g_y_b));
 
-        energy_arr[i / 3] = (double)(energy_r + energy_b + energy_b) / 3;
+        energy_arr[i / 3] = (double)(energy_r + energy_b + energy_c) / 3
     }
 
     return energy_arr;
