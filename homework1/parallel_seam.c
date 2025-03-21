@@ -251,4 +251,4 @@ int main(int argc, char *argv[])
 
     stbi_image_free(image_in);
 
-    return 0}
+    return 0;}
