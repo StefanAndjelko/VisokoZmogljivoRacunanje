@@ -237,13 +237,13 @@ int main(int argc, char *argv[])
 
     dt = omp_get_wtime() - dt;
 
-    if (!stbi_write_png("test.png", width, height, 3, image_in, width * 3)) {
-        printf("Failed to save image %s\n", "test.png");
+    if (!stbi_write_png("parallel_test.png", width, height, 3, image_in, width * 3)) {
+        printf("Failed to save image %s\n", "parallel_test.png");
         stbi_image_free(image_in);
         return 1;
     }
 
-    printf("Saved modified image as %s\n", "test.png");
+    printf("Saved modified image as %s\n", "parallel_test.png");
     printf("Image cropped in %.4f seconds,\n", dt);
 
     stbi_image_free(image_in);
