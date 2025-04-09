@@ -15,40 +15,24 @@
 
 __device__ void to_YUV_color_space(unsigned char *image_in, int width, int height)
 {
-    const float yuv_conversion_matrix[3][3] = {
-        {0.299f, 0.587f, 0.114f}, 
-        {-0.168736f, -0.331264f, 0.5f}, 
-        {0.5f, -0.418688f, -0.081312f}
-    };
-
-    // int total_pixels = width * height;
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
     
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    while (idx < width * height) {
-        int byte_offset = idx * 3;
+    while (tid < width * height) {
+        int idx = tid * 3;
         
-        unsigned char r = image_in[byte_offset];
-        unsigned char g = image_in[byte_offset + 1];
-        unsigned char b = image_in[byte_offset + 2];
+        unsigned char r = image_in[idx];
+        unsigned char g = image_in[idx + 1];
+        unsigned char b = image_in[idx + 2];
         
-        float y = r * yuv_conversion_matrix[0][0] + 
-                 g * yuv_conversion_matrix[0][1] + 
-                 b * yuv_conversion_matrix[0][2];
+        float y = 0.299f * r + 0.587f * g + 0.114f * b;
+        float u = -0.168736f *r + -0.331264f * g + 0.5f * b + 128.0f;
+        float v = 0.5f * r + -0.418688f * g + -0.081312f * b + 128.0f;
         
-        float u = r * yuv_conversion_matrix[1][0] + 
-                 g * yuv_conversion_matrix[1][1] + 
-                 b * yuv_conversion_matrix[1][2] + 128.0f;
+        image_in[idx] = (unsigned char)fminf(fmaxf(y, 0.0f), 255.0f);
+        image_in[idx + 1] = (unsigned char)fminf(fmaxf(u, 0.0f), 255.0f);
+        image_in[idx + 2] = (unsigned char)fminf(fmaxf(v, 0.0f), 255.0f);
         
-        float v = r * yuv_conversion_matrix[2][0] + 
-                 g * yuv_conversion_matrix[2][1] + 
-                 b * yuv_conversion_matrix[2][2] + 128.0f;
-        
-        image_in[byte_offset] = (unsigned char)fminf(fmaxf(y, 0.0f), 255.0f);
-        image_in[byte_offset + 1] = (unsigned char)fminf(fmaxf(u, 0.0f), 255.0f);
-        image_in[byte_offset + 2] = (unsigned char)fminf(fmaxf(v, 0.0f), 255.0f);
-        
-        idx += gridDim.x * blockDim.x;
+        tid += gridDim.x * blockDim.x;
     }
 }
 
@@ -182,23 +166,6 @@ int main(int argc, char *argv[])
     unsigned char *host_image = stbi_load(image_in_name, &width, &height, &cpp, COLOR_CHANNELS);
     int image_size = width * height;
 
-    // unsigned char *host_image = (unsigned char *)malloc(VECTOR_SIZE * 3 * sizeof(unsigned char));
-
-    // for (int i = 0; i < width * height * 3; i += 3)
-    // {
-    //     host_image[i] = 0;
-    //     host_image[i + 1] = 0;
-    //     host_image[i + 2] = 0;
-    // }
-
-    // print_image(x, VECTOR_SIZE * 3);
-
-    // int *test = (int* )malloc(256 * sizeof(int));
-    // for (int i = 0; i < 256; i++)
-    // {
-    //     test[i] = i + 1;
-    // }
-
     unsigned char *device_image;
     checkCudaErrors(cudaMalloc((void **)&device_image, image_size * 3 * sizeof(unsigned char)));
 
@@ -206,8 +173,6 @@ int main(int argc, char *argv[])
     int *host_histogram = (int *)calloc(256, sizeof(int));
     int *device_histogram;
     checkCudaErrors(cudaMalloc((void **)&device_histogram, 256 * sizeof(int)));
-
-    // host_histogram = test;
 
     // LUMINANCE
     unsigned char *host_luminance = (unsigned char *)calloc(256, sizeof(unsigned char));
@@ -220,24 +185,31 @@ int main(int argc, char *argv[])
 
     dim3 blockSize(BLOCK_SIZE);
     dim3 gridSize((image_size + blockSize.x - 1)/blockSize.x);
+
+    // Measure compute time
+    float elapsedTime;
+    cudaEvent_t start, stop;
+    checkCudaErrors(cudaEventCreate(&start));
+    checkCudaErrors(cudaEventCreate(&stop));
+    checkCudaErrors(cudaEventRecord(start));
+
     histogram_normalization<<<gridSize, blockSize>>>(device_image, width, height, device_histogram);
     cumulative_histogram<<<1, 32>>>(device_histogram, 256);
     new_luminance<<<1, 256>>>(device_luminance, device_histogram, width, height);
     generate_final_image<<<gridSize, blockSize>>>(device_image, width, height, device_luminance);
-
     checkCudaErrors(cudaGetLastError());
 
+    checkCudaErrors(cudaEventRecord(stop));
+    checkCudaErrors(cudaEventSynchronize(stop));
+    checkCudaErrors(cudaEventElapsedTime(&elapsedTime, start, stop));
+
+    // Copy solution back to host
     checkCudaErrors(cudaMemcpy(host_image, device_image, image_size * 3 * sizeof(unsigned char), cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaMemcpy(host_histogram, device_histogram, 256 * sizeof(int), cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaMemcpy(host_luminance, device_luminance, 256 * sizeof(unsigned char), cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaFree(device_image));
     checkCudaErrors(cudaFree(device_histogram));
     checkCudaErrors(cudaFree(device_luminance));
-    
-    // print_image(x, VECTOR_SIZE * 3);
-    // print_array(host_histogram, 256);
-    // print_array(host_luminance, 256);
-    // print_image(host_image, width * height * 3);
 
     if (!stbi_write_png("basic_parallel.png", width, height, 3, host_image, width * 3)) {
         printf("Failed to save image %s\n", "pasic_parallel.png");
@@ -246,6 +218,7 @@ int main(int argc, char *argv[])
     }
 
     printf("Saved modified image as %s\n", "basic_parallel.png");
+    printf("Performed histogram normalization on image in %.2f(ms)", elapsedTime);
 
     printf("\n");
     free(host_image);
