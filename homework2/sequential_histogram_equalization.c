@@ -133,12 +133,14 @@ int main(int argc, char *argv[])
     }
 
     char szImage_in_name[255];
+    char szImage_out_name[255 + 5];
 
     snprintf(szImage_in_name, 255, "%s", argv[1]);
 
     // Load image from file and allocate space for the output image
     int width, height, cpp;
     unsigned char *h_imageIn = stbi_load(szImage_in_name, &width, &height, &cpp, COLOR_CHANNELS);
+    snprintf(szImage_out_name, 260, "out_%dx%d.png", width, height);
 
     if (h_imageIn == NULL)
     {
@@ -199,14 +201,14 @@ int main(int argc, char *argv[])
     free(equalized_yuv_image);
     stbi_image_free(h_imageIn);
 
-    if (!stbi_write_png("test.png", width, height, cpp, h_imageOut, width * cpp)) {
-        printf("Failed to save image %s\n", "test.png");
+    if (!stbi_write_png(szImage_out_name, width, height, cpp, h_imageOut, width * cpp)) {
+        printf("Failed to save image %s\n", szImage_out_name);
         stbi_image_free(h_imageOut);
         return 1;
     }
 
-    printf("Saved modified image as %s\n", "test.png");
-    printf("Image equalized in %.4f seconds,\n", execution_time);
+    printf("Saved modified image as %s\n", szImage_out_name);
+    printf("Performed histogram normalization on image in %.2f (ms)", execution_time * 1000.0);
 
     /*
     // Free device memory
@@ -220,7 +222,6 @@ int main(int argc, char *argv[])
 
     // Free host memory
     stbi_image_free(h_imageOut);
-
 
     return 0;
 }

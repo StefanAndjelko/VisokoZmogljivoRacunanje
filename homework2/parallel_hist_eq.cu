@@ -1,3 +1,4 @@
+
 // module load CUDA/11.1.1-GCC-10.2.0
 
 #include <stdio.h>
@@ -11,7 +12,7 @@
 #include "stb_image_write.h"
 
 #define COLOR_CHANNELS 0
-#define BLOCK_SIZE 256
+//#define BLOCK_SIZE 256
 
 __device__ void to_YUV_color_space(unsigned char *image_in, int width, int height)
 {
@@ -162,9 +163,12 @@ int main(int argc, char *argv[])
 {
 
     char *image_in_name = argv[1];
+    const BLOCK_SIZE = argv[2];
     int width, height, cpp;
     unsigned char *host_image = stbi_load(image_in_name, &width, &height, &cpp, COLOR_CHANNELS);
     int image_size = width * height;
+    char szImage_out_name[255 + 5];
+    snprintf(szImage_out_name, 260, "out_%dx%d.png", width, height);
 
     unsigned char *device_image;
     checkCudaErrors(cudaMalloc((void **)&device_image, image_size * 3 * sizeof(unsigned char)));
@@ -211,14 +215,14 @@ int main(int argc, char *argv[])
     checkCudaErrors(cudaFree(device_histogram));
     checkCudaErrors(cudaFree(device_luminance));
 
-    if (!stbi_write_png("basic_parallel.png", width, height, 3, host_image, width * 3)) {
-        printf("Failed to save image %s\n", "pasic_parallel.png");
+    if (!stbi_write_png(szImage_out_name, width, height, 3, host_image, width * 3)) {
+        printf("Failed to save image %s\n", szImage_out_name);
         stbi_image_free(host_image);
         return 1;
     }
 
-    printf("Saved modified image as %s\n", "basic_parallel.png");
-    printf("Performed histogram normalization on image in %.2f(ms)", elapsedTime);
+    printf("Saved modified image as %s\n", szImage_out_name);
+    printf("Performed histogram normalization on image in %.2f (ms)", elapsedTime);
 
     printf("\n");
     free(host_image);
