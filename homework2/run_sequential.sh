@@ -7,7 +7,7 @@
 #SBATCH --output=sample_out.log
 
 
-gcc -O2 -lm sequential_histogram_equalization.c -o sequential || exit 1
+gcc -O2 -lm sequential_histogram_equalization.c -o sequential
 
 RESOLUTIONS=("720x480" "1024x768" "1920x1200" "3840x2160" "7680x4320")
 
