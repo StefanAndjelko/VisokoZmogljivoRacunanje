@@ -1,10 +1,10 @@
-
 // module load CUDA/11.1.1-GCC-10.2.0
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "cuda.h"
 #include "helper_cuda.h"
+#include <sys/time.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -12,7 +12,6 @@
 #include "stb_image_write.h"
 
 #define COLOR_CHANNELS 0
-//#define BLOCK_SIZE 256
 
 __device__ void to_YUV_color_space(unsigned char *image_in, int width, int height)
 {
@@ -132,43 +131,21 @@ __global__ void generate_final_image(unsigned char *in_image, int width, int hei
     to_RGB_color_space(in_image, width, height);
 }
 
-void print_image(unsigned char *arr, int len)
+void process_image(const char* image_in_name, int BLOCK_SIZE, FILE* output_file)
 {
-    for (int i = 0; i < len; i+=3)
-    {
-        printf("(%d, %d, %d), ", arr[i], arr[i + 1], arr[i + 2]);
-    }
-    printf("\n");
-}
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
 
-void print_array(int *arr, int len)
-{
-    for (int i = 0; i < len; i++)
-    {
-        printf("%d, ", arr[i]);
-    }
-    printf("\n");
-}
-
-void print_array(unsigned char *arr, int len)
-{
-    for (int i = 0; i < len; i++)
-    {
-        printf("%d, ", arr[i]);
-    }
-    printf("\n");
-}
-
-int main(int argc, char *argv[])
-{
-
-    char *image_in_name = argv[1];
-    const BLOCK_SIZE = argv[2];
     int width, height, cpp;
     unsigned char *host_image = stbi_load(image_in_name, &width, &height, &cpp, COLOR_CHANNELS);
+    if (!host_image) {
+        fprintf(stderr, "Failed to load image: %s\n", image_in_name);
+        return;
+    }
+
     int image_size = width * height;
     char szImage_out_name[255 + 5];
-    snprintf(szImage_out_name, 260, "out_%dx%d.png", width, height);
+    snprintf(szImage_out_name, 260, "out_%dx%d_%d.png", width, height, BLOCK_SIZE);
 
     unsigned char *device_image;
     checkCudaErrors(cudaMalloc((void **)&device_image, image_size * 3 * sizeof(unsigned char)));
@@ -192,10 +169,10 @@ int main(int argc, char *argv[])
 
     // Measure compute time
     float elapsedTime;
-    cudaEvent_t start, stop;
-    checkCudaErrors(cudaEventCreate(&start));
-    checkCudaErrors(cudaEventCreate(&stop));
-    checkCudaErrors(cudaEventRecord(start));
+    cudaEvent_t cuda_start, cuda_stop;
+    checkCudaErrors(cudaEventCreate(&cuda_start));
+    checkCudaErrors(cudaEventCreate(&cuda_stop));
+    checkCudaErrors(cudaEventRecord(cuda_start));
 
     histogram_normalization<<<gridSize, blockSize>>>(device_image, width, height, device_histogram);
     cumulative_histogram<<<1, 32>>>(device_histogram, 256);
@@ -203,9 +180,9 @@ int main(int argc, char *argv[])
     generate_final_image<<<gridSize, blockSize>>>(device_image, width, height, device_luminance);
     checkCudaErrors(cudaGetLastError());
 
-    checkCudaErrors(cudaEventRecord(stop));
-    checkCudaErrors(cudaEventSynchronize(stop));
-    checkCudaErrors(cudaEventElapsedTime(&elapsedTime, start, stop));
+    checkCudaErrors(cudaEventRecord(cuda_stop));
+    checkCudaErrors(cudaEventSynchronize(cuda_stop));
+    checkCudaErrors(cudaEventElapsedTime(&elapsedTime, cuda_start, cuda_stop));
 
     // Copy solution back to host
     checkCudaErrors(cudaMemcpy(host_image, device_image, image_size * 3 * sizeof(unsigned char), cudaMemcpyDeviceToHost));
@@ -215,19 +192,48 @@ int main(int argc, char *argv[])
     checkCudaErrors(cudaFree(device_histogram));
     checkCudaErrors(cudaFree(device_luminance));
 
-    if (!stbi_write_png(szImage_out_name, width, height, 3, host_image, width * 3)) {
+    gettimeofday(&end, NULL);
+    double total_time_ms = (end.tv_sec - start.tv_sec) * 1000.0 + 
+                         (end.tv_usec - start.tv_usec) / 1000.0;
+
+    /*if (!stbi_write_png(szImage_out_name, width, height, 3, host_image, width * 3)) {
         printf("Failed to save image %s\n", szImage_out_name);
-        stbi_image_free(host_image);
-        return 1;
-    }
+    }*/
 
-    printf("Saved modified image as %s\n", szImage_out_name);
-    printf("Performed histogram normalization on image in %.2f (ms)", elapsedTime);
+    // Write results to output file
+    fprintf(output_file, "%dx%d, Block size: %d, Total time: %.2f ms\n", 
+            width, height, BLOCK_SIZE, total_time_ms);
 
-    printf("\n");
     free(host_image);
     free(host_histogram);
     free(host_luminance);
+}
 
+int main(int argc, char *argv[])
+{
+    if (argc != 2) {
+        printf("Usage: %s <image_path>\n", argv[0]);
+        return 1;
+    }
+
+    const char* image_in_name = argv[1];
+    const int THREAD_BLOCKS[] = {32, 128, 160, 256, 512, 1024};
+    const int NUM_BLOCK_SIZES = sizeof(THREAD_BLOCKS)/sizeof(THREAD_BLOCKS[0]);
+    const int REPETITIONS = 10;
+
+    FILE* output_file = fopen("parallel_out.log", "a");
+    if (!output_file) {
+        printf("Failed to open output file\n");
+        return 1;
+    }
+
+    for (int i = 0; i < NUM_BLOCK_SIZES; i++) {
+        for (int rep = 0; rep < REPETITIONS; rep++) {
+            printf("Running with block size %d (attempt %d)\n", THREAD_BLOCKS[i], rep+1);
+            process_image(image_in_name, THREAD_BLOCKS[i], output_file);
+        }
+    }
+
+    fclose(output_file);
     return 0;
 }

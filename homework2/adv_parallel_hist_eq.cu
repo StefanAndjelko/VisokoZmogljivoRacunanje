@@ -12,7 +12,6 @@
 #include "stb_image_write.h"
 
 #define COLOR_CHANNELS 0
-//#define BLOCK_SIZE 256
 
 __device__ void to_YUV_color_space(unsigned char *image_in, int width, int height)
 {
@@ -171,7 +170,7 @@ void print_array(unsigned char *arr, int len)
     printf("\n");
 }
 
-int main(int argc, char *argv[])
+void process_image(const char* image_in_name, int BLOCK_SIZE, FILE* output_file)
 {
     struct timeval total_start, total_end;
     gettimeofday(&total_start, NULL);
@@ -180,14 +179,17 @@ int main(int argc, char *argv[])
     checkCudaErrors(cudaEventCreate(&start));
     checkCudaErrors(cudaEventCreate(&stop));
 
-    char *image_in_name = argv[1];
-    const int BLOCK_SIZE = atoi(argv[2]);
     int width, height, cpp;
 
     unsigned char *host_image = stbi_load(image_in_name, &width, &height, &cpp, COLOR_CHANNELS);
+    if (!host_image) {
+        fprintf(stderr, "Failed to load image: %s\n", image_in_name);
+        return;
+    }
+    
     int image_size = width * height;
     char szImage_out_name[255 + 5];
-    snprintf(szImage_out_name, 260, "out_%dx%d.png", width, height);
+    snprintf(szImage_out_name, 260, "out_%dx%d_%d.png", width, height, BLOCK_SIZE);
 
     unsigned char *device_image;
     checkCudaErrors(cudaMalloc((void **)&device_image, image_size * 3 * sizeof(unsigned char)));
@@ -236,19 +238,46 @@ int main(int argc, char *argv[])
 
     double writting_time_ms = total_time_ms - elapsedTime;
 
+    /*
     if (!stbi_write_png(szImage_out_name, width, height, 3, host_image, width * 3)) {
         printf("Failed to save image %s\n", szImage_out_name);
-        stbi_image_free(host_image);
-        return 1;
     }
+    */
 
-    printf("Saved modified image as %s. Block size: %d\n", szImage_out_name, BLOCK_SIZE);
-    printf("Performed histogram normalization on image in %.2f (ms)", total_time_ms);
-    printf("Writing in memory took %.2f (ms)", writting_time_ms);
-    printf("\n");
+    // Write results to output file
+    fprintf(output_file, "%dx%d, Block size: %d, Total time: %.2f ms\n", 
+            width, height, BLOCK_SIZE, total_time_ms);
+
     free(host_image);
     free(host_histogram);
     free(host_luminance);
+}
 
+int main(int argc, char *argv[])
+{
+    if (argc != 2) {
+        printf("Usage: %s <image_path>\n", argv[0]);
+        return 1;
+    }
+
+    const char* image_in_name = argv[1];
+    const int THREAD_BLOCKS[] = {32, 128, 160, 256, 512, 1024};
+    const int NUM_BLOCK_SIZES = sizeof(THREAD_BLOCKS)/sizeof(THREAD_BLOCKS[0]);
+    const int REPETITIONS = 10;
+
+    FILE* output_file = fopen("adv_out.log", "a");
+    if (!output_file) {
+        printf("Failed to open output file\n");
+        return 1;
+    }
+
+    for (int i = 0; i < NUM_BLOCK_SIZES; i++) {
+        for (int rep = 0; rep < REPETITIONS; rep++) {
+            printf("Running with block size %d (attempt %d)\n", THREAD_BLOCKS[i], rep+1);
+            process_image(image_in_name, THREAD_BLOCKS[i], output_file);
+        }
+    }
+
+    fclose(output_file);
     return 0;
 }
