@@ -163,71 +163,86 @@ int main(int argc, char *argv[])
 {
 
     char *image_in_name = argv[1];
-    const BLOCK_SIZE = argv[2];
     int width, height, cpp;
-    unsigned char *host_image = stbi_load(image_in_name, &width, &height, &cpp, COLOR_CHANNELS);
-    int image_size = width * height;
-    char szImage_out_name[255 + 5];
-    snprintf(szImage_out_name, 260, "out_%dx%d.png", width, height);
+    // char szImage_out_name[255 + 5];
+    // snprintf(szImage_out_name, 260, "out_%dx%d.png", width, height);
 
-    unsigned char *device_image;
-    checkCudaErrors(cudaMalloc((void **)&device_image, image_size * 3 * sizeof(unsigned char)));
+    int block_sizes[] = {32, 128, 160, 256, 512, 1024};
+    float times[] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 
-    // HISTOGRAM
-    int *host_histogram = (int *)calloc(256, sizeof(int));
-    int *device_histogram;
-    checkCudaErrors(cudaMalloc((void **)&device_histogram, 256 * sizeof(int)));
+    for (int iter = 0; iter < 6; iter++)
+    {
+        unsigned char *host_image = stbi_load(image_in_name, &width, &height, &cpp, COLOR_CHANNELS);
+        int image_size = width * height;
 
-    // LUMINANCE
-    unsigned char *host_luminance = (unsigned char *)calloc(256, sizeof(unsigned char));
-    unsigned char *device_luminance;
-    checkCudaErrors(cudaMalloc((void **)&device_luminance, 256 * sizeof(unsigned char)));
+        unsigned char *device_image;
+        checkCudaErrors(cudaMalloc((void **)&device_image, image_size * 3 * sizeof(unsigned char)));
+    
+        // HISTOGRAM
+        int *host_histogram = (int *)calloc(256, sizeof(int));
+        int *device_histogram;
+        checkCudaErrors(cudaMalloc((void **)&device_histogram, 256 * sizeof(int)));
+    
+        // LUMINANCE
+        unsigned char *host_luminance = (unsigned char *)calloc(256, sizeof(unsigned char));
+        unsigned char *device_luminance;
+        checkCudaErrors(cudaMalloc((void **)&device_luminance, 256 * sizeof(unsigned char)));
+    
+        // Measure compute time
+        float elapsedTime = 0.0f;
+        cudaEvent_t start, stop;
+        checkCudaErrors(cudaEventCreate(&start));
+        checkCudaErrors(cudaEventCreate(&stop));
+        checkCudaErrors(cudaEventRecord(start));
+    
+        checkCudaErrors(cudaMemcpy(device_image, host_image, image_size * 3 * sizeof(unsigned char), cudaMemcpyHostToDevice));
+        checkCudaErrors(cudaMemcpy(device_histogram, host_histogram, 256 * sizeof(int), cudaMemcpyHostToDevice));
+        checkCudaErrors(cudaMemcpy(device_luminance, host_luminance, 256 * sizeof(unsigned char), cudaMemcpyHostToDevice));
+    
+        dim3 blockSize(block_sizes[iter]);
+        dim3 gridSize((image_size + blockSize.x - 1)/blockSize.x);
+    
+        histogram_normalization<<<gridSize, blockSize>>>(device_image, width, height, device_histogram);
+        cumulative_histogram<<<1, 32>>>(device_histogram, 256);
+        new_luminance<<<1, 256>>>(device_luminance, device_histogram, width, height);
+        generate_final_image<<<gridSize, blockSize>>>(device_image, width, height, device_luminance);
+        checkCudaErrors(cudaGetLastError());
+    
+        checkCudaErrors(cudaEventRecord(stop));
+        checkCudaErrors(cudaEventSynchronize(stop));
+        checkCudaErrors(cudaEventElapsedTime(&elapsedTime, start, stop));
+        times[iter] = elapsedTime;
+        printf("Performed histogram normalization on image (using %d block size) in %.2f (ms)\n", block_sizes[iter], elapsedTime);
+    
+        // Copy solution back to host
+        checkCudaErrors(cudaMemcpy(host_image, device_image, image_size * 3 * sizeof(unsigned char), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(host_histogram, device_histogram, 256 * sizeof(int), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(host_luminance, device_luminance, 256 * sizeof(unsigned char), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaFree(device_image));
+        checkCudaErrors(cudaFree(device_histogram));
+        checkCudaErrors(cudaFree(device_luminance));
 
-    checkCudaErrors(cudaMemcpy(device_image, host_image, image_size * 3 * sizeof(unsigned char), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(device_histogram, host_histogram, 256 * sizeof(int), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(device_luminance, host_luminance, 256 * sizeof(unsigned char), cudaMemcpyHostToDevice));
+        if (!stbi_write_png("parallel_out.png", width, height, 3, host_image, width * 3)) {
+            printf("Failed to save image %s\n", "parallel_out.png");
+            stbi_image_free(host_image);
+            return 1;
+        }
 
-    dim3 blockSize(BLOCK_SIZE);
-    dim3 gridSize((image_size + blockSize.x - 1)/blockSize.x);
-
-    // Measure compute time
-    float elapsedTime;
-    cudaEvent_t start, stop;
-    checkCudaErrors(cudaEventCreate(&start));
-    checkCudaErrors(cudaEventCreate(&stop));
-    checkCudaErrors(cudaEventRecord(start));
-
-    histogram_normalization<<<gridSize, blockSize>>>(device_image, width, height, device_histogram);
-    cumulative_histogram<<<1, 32>>>(device_histogram, 256);
-    new_luminance<<<1, 256>>>(device_luminance, device_histogram, width, height);
-    generate_final_image<<<gridSize, blockSize>>>(device_image, width, height, device_luminance);
-    checkCudaErrors(cudaGetLastError());
-
-    checkCudaErrors(cudaEventRecord(stop));
-    checkCudaErrors(cudaEventSynchronize(stop));
-    checkCudaErrors(cudaEventElapsedTime(&elapsedTime, start, stop));
-
-    // Copy solution back to host
-    checkCudaErrors(cudaMemcpy(host_image, device_image, image_size * 3 * sizeof(unsigned char), cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMemcpy(host_histogram, device_histogram, 256 * sizeof(int), cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMemcpy(host_luminance, device_luminance, 256 * sizeof(unsigned char), cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaFree(device_image));
-    checkCudaErrors(cudaFree(device_histogram));
-    checkCudaErrors(cudaFree(device_luminance));
-
-    if (!stbi_write_png(szImage_out_name, width, height, 3, host_image, width * 3)) {
-        printf("Failed to save image %s\n", szImage_out_name);
-        stbi_image_free(host_image);
-        return 1;
+        free(host_image);
+        free(host_histogram);
+        free(host_luminance);
     }
 
-    printf("Saved modified image as %s\n", szImage_out_name);
-    printf("Performed histogram normalization on image in %.2f (ms)", elapsedTime);
+    printf("Saved modified image as %s\n", "parallel_out.png");
 
     printf("\n");
-    free(host_image);
-    free(host_histogram);
-    free(host_luminance);
+
+    for (int i = 0; i < 6; i++)
+    {
+        printf("%.2f, ", times[i]);
+    }
+    printf("\n");
+
 
     return 0;
 }
