@@ -1,10 +1,10 @@
-
 // module load CUDA/11.1.1-GCC-10.2.0
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "cuda.h"
 #include "helper_cuda.h"
+#include <sys/time.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -12,7 +12,6 @@
 #include "stb_image_write.h"
 
 #define COLOR_CHANNELS 0
-//#define BLOCK_SIZE 256
 
 __device__ void to_YUV_color_space(unsigned char *image_in, int width, int height)
 {
