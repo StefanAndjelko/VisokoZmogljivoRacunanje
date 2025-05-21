@@ -1,0 +1,131 @@
+
+======================   ALLOCATED NODES   ======================
+	wn140: flags=0x11 slots=4 max_slots=0 slots_inuse=0 state=UP
+=================================================================
+WORKS1WORKS1WORKS1WORKS1WORKS2WORKS3WORKS4WORKS5WORKS2WORKS3WORKS4WORKS5WORKS2WORKS3WORKS4WORKS5WORKS2WORKS3WORKS4WORKS5[wn140:22156:0:22156] Caught signal 11 (Segmentation fault: address not mapped to object at address 0x17c7000)
+[wn140:22159:0:22159] Caught signal 11 (Segmentation fault: address not mapped to object at address 0x1a3d000)
+[wn140:22157:0:22157] Caught signal 11 (Segmentation fault: address not mapped to object at address 0x2756000)
+[wn140:22158:0:22158] Caught signal 11 (Segmentation fault: address not mapped to object at address 0x27e3000)
+malloc(): corrupted top size
+[wn140:22158] *** Process received signal ***
+[wn140:22158] Signal: Aborted (6)
+[wn140:22158] Signal code:  (-6)
+malloc(): corrupted top size
+[wn140:22156] *** Process received signal ***
+[wn140:22156] Signal: Aborted (6)
+[wn140:22156] Signal code:  (-6)
+malloc(): corrupted top size
+[wn140:22159] *** Process received signal ***
+[wn140:22159] Signal: Aborted (6)
+[wn140:22159] Signal code:  (-6)
+malloc(): corrupted top size
+[wn140:22157] *** Process received signal ***
+[wn140:22157] Signal: Aborted (6)
+[wn140:22157] Signal code:  (-6)
+[wn140:22158] [ 0] [wn140:22156] [ 0] [wn140:22159] [ 0] /lib64/libc.so.6(+0x3e730)[0x146fa163e730]
+[wn140:22157] [ 0] /lib64/libc.so.6(+0x3e730)[0x14eaf9e3e730]
+[wn140:22159] [ 1] /lib64/libc.so.6(+0x3e730)[0x146e6763e730]
+[wn140:22158] [ 1] [wn140:22157] [ 1] /lib64/libc.so.6(+0x8b52c)[0x14eaf9e8b52c]
+[wn140:22157] [ 2] /lib64/libc.so.6(+0x8b52c)[0x146e6768b52c]
+[wn140:22158] [ 2] /lib64/libc.so.6(+0x8b52c)[0x146fa168b52c]
+[wn140:22159] [ 2] /lib64/libc.so.6(raise+0x16)[0x146fa163e686]
+/lib64/libc.so.6(+0x3e730)[0x14c1ba03e730]
+[wn140:22156] [ 1] /lib64/libc.so.6(+0x8b52c)[0x14c1ba08b52c]
+[wn140:22156] [ 2] /lib64/libc.so.6(raise+0x16)[0x14eaf9e3e686]
+[wn140:22157] [ 3] /lib64/libc.so.6(raise+0x16)[0x146e6763e686]
+[wn140:22158] [ 3] [wn140:22159] [ 3] /lib64/libc.so.6(raise+0x16)[0x14c1ba03e686]
+[wn140:22156] [ 3] /lib64/libc.so.6(abort+0xd3)[0x14c1ba028833]
+[wn140:22156] [ 4] /lib64/libc.so.6(abort+0xd3)[0x14eaf9e28833]
+[wn140:22157] [ 4] /lib64/libc.so.6(+0x29170)[0x14eaf9e29170]
+[wn140:22157] [ 5] /lib64/libc.so.6(abort+0xd3)[0x146e67628833]
+[wn140:22158] [ 4] /lib64/libc.so.6(+0x29170)[0x146e67629170]
+[wn140:22158] [ 5] /lib64/libc.so.6(abort+0xd3)[0x146fa1628833]
+[wn140:22159] [ 4] /lib64/libc.so.6(+0x29170)[0x146fa1629170]
+[wn140:22159] [ 5] /lib64/libc.so.6(+0x955d7)[0x146e676955d7]
+[wn140:22158] [ 6] /lib64/libc.so.6(+0x29170)[0x14c1ba029170]
+[wn140:22156] [ 5] /lib64/libc.so.6(+0x955d7)[0x14eaf9e955d7]
+[wn140:22157] [ 6] /lib64/libc.so.6(+0x955d7)[0x146fa16955d7]
+[wn140:22159] [ 6] /lib64/libc.so.6(+0x989b2)[0x14eaf9e989b2]
+[wn140:22157] [ 7] /lib64/libc.so.6(malloc+0x99)[0x14eaf9e993e9]
+[wn140:22157] [ 8] /lib64/libc.so.6(+0x989b2)[0x146e676989b2]
+[wn140:22158] [ 7] /lib64/libc.so.6(malloc+0x99)[0x146e676993e9]
+[wn140:22158] [ 8] /lib64/libc.so.6(+0x955d7)[0x14c1ba0955d7]
+[wn140:22156] [ 6] /lib64/libc.so.6(+0x989b2)[0x146fa16989b2]
+[wn140:22159] [ 7] /lib64/libc.so.6(malloc+0x99)[0x146fa16993e9]
+[wn140:22159] [ 8] /lib64/libc.so.6(+0x989b2)[0x14c1ba0989b2]
+[wn140:22156] [ 7] /cvmfs/sling.si/modules/el7/software/binutils/2.40-GCCcore-13.2.0/lib/libbfd-2.40.so(objalloc_create+0x21)[0x14eaf1434831]
+[wn140:22157] [ 9] /cvmfs/sling.si/modules/el7/software/binutils/2.40-GCCcore-13.2.0/lib/libbfd-2.40.so(+0x5082b)[0x14eaf139582b]
+[wn140:22157] [10] /cvmfs/sling.si/modules/el7/software/binutils/2.40-GCCcore-13.2.0/lib/libbfd-2.40.so(objalloc_create+0x21)[0x146e641d2831]
+[wn140:22158] [ 9] /cvmfs/sling.si/modules/el7/software/binutils/2.40-GCCcore-13.2.0/lib/libbfd-2.40.so(+0x5082b)[0x146e6413382b]
+[wn140:22158] [10] /cvmfs/sling.si/modules/el7/software/binutils/2.40-GCCcore-13.2.0/lib/libbfd-2.40.so(bfd_fopen+0x18)[0x146e64134658]
+[wn140:22158] /cvmfs/sling.si/modules/el7/software/binutils/2.40-GCCcore-13.2.0/lib/libbfd-2.40.so(objalloc_create+0x21)[0x146f98cf5831]
+[wn140:22159] [ 9] /cvmfs/sling.si/modules/el7/software/binutils/2.40-GCCcore-13.2.0/lib/libbfd-2.40.so(+0x5082b)[0x146f98c5682b]
+[wn140:22159] [10] /cvmfs/sling.si/modules/el7/software/binutils/2.40-GCCcore-13.2.0/lib/libbfd-2.40.so(bfd_fopen+0x18)[0x146f98c57658]
+[wn140:22159] [11] [11] /lib64/libc.so.6(malloc+0x99)[0x14c1ba0993e9]
+[wn140:22156] [ 8] /cvmfs/sling.si/modules/el7/software/binutils/2.40-GCCcore-13.2.0/lib/libbfd-2.40.so(bfd_fopen+0x18)[0x14eaf1396658]
+[wn140:22157] [11] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x2836e)[0x146f98d8a36e]
+[wn140:22159] [12] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x29030)[0x146f98d8b030]
+[wn140:22159] [13] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(ucs_debug_backtrace_create+0x45)[0x146f98d8b585]
+[wn140:22159] [14] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x29a02)[0x146f98d8ba02]
+[wn140:22159] [15] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(ucs_handle_error+0x2a0)[0x146f98d8caf0]
+[wn140:22159] [16] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x2836e)[0x146e6426736e]
+[wn140:22158] [12] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x29030)[0x146e64268030]
+[wn140:22158] [13] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(ucs_debug_backtrace_create+0x45)[0x146e64268585]
+[wn140:22158] [14] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x29a02)[0x146e64268a02]
+[wn140:22158] [15] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(ucs_handle_error+0x2a0)[0x146e64269af0]
+[wn140:22158] [16] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x2acc4)[0x146e64269cc4]
+/cvmfs/sling.si/modules/el7/software/binutils/2.40-GCCcore-13.2.0/lib/libbfd-2.40.so(objalloc_create+0x21)[0x14c1b169a831]
+[wn140:22156] [ 9] /cvmfs/sling.si/modules/el7/software/binutils/2.40-GCCcore-13.2.0/lib/libbfd-2.40.so(+0x5082b)[0x14c1b15fb82b]
+[wn140:22156] [10] /cvmfs/sling.si/modules/el7/software/binutils/2.40-GCCcore-13.2.0/lib/libbfd-2.40.so(bfd_fopen+0x18)[0x14c1b15fc658]
+/cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x2836e)[0x14eaf3ec636e]
+[wn140:22157] [12] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x29030)[0x14eaf3ec7030]
+[wn140:22157] [13] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(ucs_debug_backtrace_create+0x45)[0x14eaf3ec7585]
+[wn140:22157] [14] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x29a02)[0x14eaf3ec7a02]
+[wn140:22157] [15] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(ucs_handle_error+0x2a0)[0x14eaf3ec8af0]
+[wn140:22157] [16] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x2acc4)[0x14eaf3ec8cc4]
+[wn140:22157] [17] [wn140:22156] [11] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x2836e)[0x14c1b171536e]
+[wn140:22156] [12] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x29030)[0x14c1b1716030]
+[wn140:22156] [13] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x2acc4)[0x146f98d8ccc4]
+[wn140:22159] [17] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x2ae5a)[0x146f98d8ce5a]
+[wn140:22159] [18] /lib64/libc.so.6(+0x3e730)[0x146fa163e730]
+[wn140:22159] [19] mpi_gray_scott[0x41f975]
+[wn140:22159] [20] mpi_gray_scott[0x42005a]
+[wn140:22159] [wn140:22158] [17] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x2ae5a)[0x146e64269e5a]
+[wn140:22158] [18] /lib64/libc.so.6(+0x3e730)[0x146e6763e730]
+[wn140:22158] [19] mpi_gray_scott[0x41f975]
+[wn140:22158] [20] mpi_gray_scott[0x42005a]
+[wn140:22158] [21] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x2ae5a)[0x14eaf3ec8e5a]
+[wn140:22157] [18] /lib64/libc.so.6(+0x3e730)[0x14eaf9e3e730]
+[wn140:22157] [19] mpi_gray_scott[0x41f975]
+[wn140:22157] [20] mpi_gray_scott[0x42005a]
+[wn140:22157] [21] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(ucs_debug_backtrace_create+0x45)[0x14c1b1716585]
+[wn140:22156] [14] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x29a02)[0x14c1b1716a02]
+[wn140:22156] [15] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(ucs_handle_error+0x2a0)[0x14c1b1717af0]
+[21] /lib64/libc.so.6(+0x295d0)[0x146fa16295d0]
+[wn140:22159] [22] /lib64/libc.so.6(+0x295d0)[0x146e676295d0]
+[wn140:22158] [22] /lib64/libc.so.6(__libc_start_main+0x80)[0x146e67629680]
+[wn140:22158] [23] mpi_gray_scott[0x401265]
+[wn140:22158] *** End of error message ***
+/lib64/libc.so.6(+0x295d0)[0x14eaf9e295d0]
+[wn140:22157] [22] /lib64/libc.so.6(__libc_start_main+0x80)[0x14eaf9e29680]
+[wn140:22157] [23] mpi_gray_scott[0x401265]
+[wn140:22157] *** End of error message ***
+[wn140:22156] [16] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x2acc4)[0x14c1b1717cc4]
+[wn140:22156] [17] /cvmfs/sling.si/modules/el7/software/UCX/1.15.0-GCCcore-13.2.0/lib/libucs.so.0(+0x2ae5a)[0x14c1b1717e5a]
+[wn140:22156] [18] /lib64/libc.so.6(__libc_start_main+0x80)[0x146fa1629680]
+[wn140:22159] [23] mpi_gray_scott[0x401265]
+[wn140:22159] *** End of error message ***
+/lib64/libc.so.6(+0x3e730)[0x14c1ba03e730]
+[wn140:22156] [19] mpi_gray_scott[0x41f975]
+[wn140:22156] [20] mpi_gray_scott[0x42005a]
+[wn140:22156] [21] /lib64/libc.so.6(+0x295d0)[0x14c1ba0295d0]
+[wn140:22156] [22] /lib64/libc.so.6(__libc_start_main+0x80)[0x14c1ba029680]
+[wn140:22156] [23] mpi_gray_scott[0x401265]
+[wn140:22156] *** End of error message ***
+--------------------------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+mpirun noticed that process rank 2 with PID 22158 on node wn140 exited on signal 6 (Aborted).
+--------------------------------------------------------------------------
